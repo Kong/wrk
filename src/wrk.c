@@ -15,6 +15,9 @@ static struct config {
     bool     latency;
     char    *host;
     char    *script;
+    char    *ca;
+    char    *cert;
+    char    *key;
     SSL_CTX *ctx;
 } cfg;
 
@@ -52,6 +55,9 @@ static void usage() {
            "    -H, --header      <H>  Add header to request      \n"
            "        --latency          Print latency statistics   \n"
            "        --timeout     <T>  Socket/request timeout     \n"
+           "    -A, --cacert      <S>  CA certificate file        \n"
+           "    -C, --cert        <S>  Client certificate file    \n"
+           "    -K, --key         <S>  Client key file            \n"
            "    -v, --version          Print version details      \n"
            "                                                      \n"
            "  Numeric arguments may include a SI unit (1k, 1M, 1G)\n"
@@ -73,7 +79,7 @@ int main(int argc, char **argv) {
     char *service = port ? port : schema;
 
     if (!strncmp("https", schema, 5)) {
-        if ((cfg.ctx = ssl_init()) == NULL) {
+        if ((cfg.ctx = ssl_init(cfg.ca, cfg.cert, cfg.key)) == NULL) {
             fprintf(stderr, "unable to initialize SSL\n");
             ERR_print_errors_fp(stderr);
             exit(1);
@@ -471,6 +477,9 @@ static struct option longopts[] = {
     { "duration",    required_argument, NULL, 'd' },
     { "threads",     required_argument, NULL, 't' },
     { "script",      required_argument, NULL, 's' },
+    { "cacert",      required_argument, NULL, 'A' },
+    { "cert",        required_argument, NULL, 'C' },
+    { "key",         required_argument, NULL, 'K' },
     { "header",      required_argument, NULL, 'H' },
     { "latency",     no_argument,       NULL, 'L' },
     { "timeout",     required_argument, NULL, 'T' },
@@ -489,7 +498,7 @@ static int parse_args(struct config *cfg, char **url, struct http_parser_url *pa
     cfg->duration    = 10;
     cfg->timeout     = SOCKET_TIMEOUT_MS;
 
-    while ((c = getopt_long(argc, argv, "t:c:d:s:H:T:Lrv?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "t:c:d:s:A:C:K:H:T:R:LUBrv?", longopts, NULL)) != -1) {
         switch (c) {
             case 't':
                 if (scan_metric(optarg, &cfg->threads)) return -1;
@@ -502,6 +511,15 @@ static int parse_args(struct config *cfg, char **url, struct http_parser_url *pa
                 break;
             case 's':
                 cfg->script = optarg;
+                break;
+            case 'A':
+                cfg->ca = optarg;
+                break;
+            case 'C':
+                cfg->cert = optarg;
+                break;
+            case 'K':
+                cfg->key = optarg;
                 break;
             case 'H':
                 *header++ = optarg;
