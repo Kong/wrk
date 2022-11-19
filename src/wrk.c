@@ -196,11 +196,18 @@ int main(int argc, char **argv) {
     printf("Requests/sec: %9.2Lf\n", req_per_s);
     printf("Transfer/sec: %10sB\n", format_binary(bytes_per_s));
 
+    for (uint64_t i = 0; i < cfg.threads; i++) {
+        thread *t      = &threads[i];
+        lua_close(t->L);
+    }
+
     if (script_has_done(L)) {
         script_summary(L, runtime_us, complete, bytes);
         script_errors(L, &errors);
         script_done(L, statistics.latency, statistics.requests);
     }
+
+    lua_close(L);
 
     return 0;
 }
